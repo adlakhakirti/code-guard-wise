@@ -7,26 +7,30 @@ const corsHeaders = {
 };
 
 const SEVERITY_GUIDANCE = `
-Each finding MUST include a severity level and a context tag. Use this 4-tier system:
-- "critical": Direct data exposure, compliance violation, or active security vulnerability that could be exploited (SQL injection, hardcoded credentials, GDPR/HIPAA violation, no encryption).
+Each finding MUST include a severity level, a context tag, and a confidence indicator. Use this 4-tier severity system:
+- "critical": Direct data exposure, compliance violation, or active security vulnerability (SQL injection, hardcoded credentials, GDPR/HIPAA violation, no encryption).
 - "high": Security vulnerability that creates significant risk but doesn't immediately expose data (violation of least privilege, no audit trail, zero-trust violation).
 - "medium": Code quality or architectural issues that create risk over time (no error handling, connection not closed, missing documentation, generic SELECT *).
-- "low": Best practice recommendations that improve code hygiene (missing type hints, no return type documentation).
+- "low": Best practice recommendations (missing type hints, no return type documentation).
 
-Each finding must also include a "context" field set to either:
-- "kiteworks" — if the finding relates to security-company-specific concerns (SQL injection, hardcoded credentials, least privilege, audit trail, GDPR/HIPAA, encryption, zero-trust, data minimization)
-- "general" — if the finding is a standard code quality or best practice issue (error handling, connection management, SELECT *, type hints, documentation)
+Each finding must include a "context" field:
+- "kiteworks" — security-company-specific concerns (SQL injection, hardcoded credentials, least privilege, audit trail, GDPR/HIPAA, encryption, zero-trust, data minimization)
+- "general" — standard code quality or best practice issues (error handling, connection management, SELECT *, type hints, documentation)
 
-Return findings as objects: { "severity": "critical"|"high"|"medium"|"low", "context": "kiteworks"|"general", "text": "description" }
+Each finding must include a "confidence" field:
+- "high" — The issue is definitively visible in the code shown. No ambiguity. Examples: f-string SQL injection, plaintext credentials, missing try/catch, no close() call, visible SELECT *, missing type hints.
+- "needs_review" — The issue may depend on context outside the code snippet (middleware, infrastructure, gateway layers). Examples: audit logging might exist elsewhere, TLS might be at infra level, auth might be in a gateway, SELECT * might be intentional.
+
+Return findings as: { "severity": "critical"|"high"|"medium"|"low", "context": "kiteworks"|"general", "confidence": "high"|"needs_review", "text": "description" }
 The section-level "badge" should equal the HIGHEST severity found among that section's findings.`;
 
 const GENERIC_SYSTEM = `You are a code review assistant. Review the provided code for quality, potential bugs, and general best practices.
 ${SEVERITY_GUIDANCE}
 Return a JSON response with this structure:
 {
-  "quality": { "badge": "critical"|"high"|"medium"|"low", "findings": [{"severity":"medium","context":"general","text":"finding 1"}] },
-  "security": { "badge": "critical"|"high"|"medium"|"low", "findings": [{"severity":"high","context":"kiteworks","text":"finding 1"}] },
-  "compliance": { "badge": "critical"|"high"|"medium"|"low", "findings": [{"severity":"low","context":"general","text":"finding 1"}] }
+  "quality": { "badge": "critical"|"high"|"medium"|"low", "findings": [{"severity":"medium","context":"general","confidence":"high","text":"finding"}] },
+  "security": { "badge": "critical"|"high"|"medium"|"low", "findings": [{"severity":"high","context":"kiteworks","confidence":"needs_review","text":"finding"}] },
+  "compliance": { "badge": "critical"|"high"|"medium"|"low", "findings": [{"severity":"low","context":"general","confidence":"high","text":"finding"}] }
 }
 Keep findings concise — one sentence each, maximum 4 per section. Do not return anything outside this JSON.`;
 
@@ -43,9 +47,9 @@ Review the provided code against these standards.
 ${SEVERITY_GUIDANCE}
 Return a JSON response with this structure:
 {
-  "quality": { "badge": "critical"|"high"|"medium"|"low", "findings": [{"severity":"medium","context":"general","text":"finding 1"}] },
-  "security": { "badge": "critical"|"high"|"medium"|"low", "findings": [{"severity":"critical","context":"kiteworks","text":"finding 1"}] },
-  "compliance": { "badge": "critical"|"high"|"medium"|"low", "findings": [{"severity":"high","context":"kiteworks","text":"finding 1"}] }
+  "quality": { "badge": "critical"|"high"|"medium"|"low", "findings": [{"severity":"medium","context":"general","confidence":"high","text":"finding"}] },
+  "security": { "badge": "critical"|"high"|"medium"|"low", "findings": [{"severity":"critical","context":"kiteworks","confidence":"high","text":"finding"}] },
+  "compliance": { "badge": "critical"|"high"|"medium"|"low", "findings": [{"severity":"high","context":"kiteworks","confidence":"needs_review","text":"finding"}] }
 }
 In the security and compliance sections, be specific about which Kiteworks standard is violated and what the remediation should be. Maximum 4 findings per section. Do not return anything outside this JSON.`;
 
@@ -79,14 +83,12 @@ serve(async (req) => {
     if (!response.ok) {
       if (response.status === 429) {
         return new Response(JSON.stringify({ error: "Rate limited — please try again later." }), {
-          status: 429,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
       if (response.status === 402) {
         return new Response(JSON.stringify({ error: "Credits exhausted — please add funds." }), {
-          status: 402,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
       throw new Error(`AI gateway error: ${response.status}`);

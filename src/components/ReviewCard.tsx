@@ -2,10 +2,12 @@ import { CheckCircle, AlertTriangle, XCircle, AlertOctagon, Info, Shield } from 
 
 export type BadgeLevel = "critical" | "high" | "medium" | "low" | "pass";
 export type FindingContext = "kiteworks" | "general";
+export type FindingConfidence = "high" | "needs_review";
 
 export interface Finding {
   severity: BadgeLevel;
   context?: FindingContext;
+  confidence?: FindingConfidence;
   text: string;
 }
 
@@ -30,6 +32,21 @@ const SEVERITY_DOT: Record<BadgeLevel, string> = {
   medium: "bg-yellow-500",
   low: "bg-blue-500",
   pass: "bg-badge-pass",
+};
+
+const ConfidenceLabel = ({ confidence }: { confidence?: FindingConfidence }) => {
+  if (confidence === "needs_review") {
+    return (
+      <span className="inline-flex items-center gap-0.5 text-[11px] text-amber-600 font-medium whitespace-nowrap shrink-0">
+        <span>●</span> Needs review
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center gap-0.5 text-[11px] text-green-600 font-medium whitespace-nowrap shrink-0">
+      <span>●</span> High confidence
+    </span>
+  );
 };
 
 const ContextPill = ({ context }: { context?: FindingContext }) => {
@@ -69,7 +86,10 @@ const ReviewCard = ({ title, badge, findings, delay = 0 }: ReviewCardProps) => {
           <li key={i} className="flex items-start gap-2 text-sm text-foreground/85 leading-snug">
             <span className={`mt-1.5 w-1.5 h-1.5 rounded-full ${SEVERITY_DOT[f.severity] || "bg-muted-foreground/40"} shrink-0`} />
             <span className="flex-1">{f.text}</span>
-            <ContextPill context={f.context} />
+            <div className="flex items-center gap-1.5 shrink-0 mt-0.5">
+              <ConfidenceLabel confidence={f.confidence} />
+              <ContextPill context={f.context} />
+            </div>
           </li>
         ))}
       </ul>

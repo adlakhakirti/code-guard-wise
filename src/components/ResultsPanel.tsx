@@ -64,8 +64,13 @@ function normalizeSectionResult(section: any): SectionResult {
   if (!section) return { badge: "pass", findings: [] };
   const findings: Finding[] = (section.findings || []).map((f: any) =>
     typeof f === "string"
-      ? { severity: section.badge || "medium", context: undefined, text: f }
-      : { severity: f.severity || "medium", context: f.context || undefined, text: f.text || "" }
+      ? { severity: section.badge || "medium", context: undefined, confidence: undefined, text: f }
+      : {
+          severity: f.severity || "medium",
+          context: f.context || undefined,
+          confidence: f.confidence || undefined,
+          text: f.text || "",
+        }
   );
   const badge = highestSeverity(findings);
   return { badge, findings };
@@ -90,6 +95,8 @@ const ResultsPanel = ({ result, isLoading, error }: ResultsPanelProps) => {
   for (const f of allFindings) {
     counts[f.severity] = (counts[f.severity] || 0) + 1;
   }
+
+  const hasNeedsReview = allFindings.some((f) => f.confidence === "needs_review");
 
   return (
     <div className="flex flex-col gap-4 h-full">
@@ -117,6 +124,11 @@ const ResultsPanel = ({ result, isLoading, error }: ResultsPanelProps) => {
         <p className="text-xs text-muted-foreground">
           CodeGuard AI runs entirely within your secure perimeter. No code leaves your infrastructure.
         </p>
+        {hasNeedsReview && (
+          <p className="text-[11px] text-muted-foreground italic">
+            Findings marked 'Needs review' may depend on context outside this code snippet. A senior engineer should validate before acting.
+          </p>
+        )}
       </div>
     </div>
   );
