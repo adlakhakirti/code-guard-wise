@@ -6,11 +6,23 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const GENERIC_SYSTEM = `You are a code review assistant. Review the provided code for quality, potential bugs, and general best practices. Return a JSON response with this structure:
+const SEVERITY_GUIDANCE = `
+Each finding MUST include a severity level. Use this 4-tier system:
+- "critical": Direct data exposure, compliance violation, or active security vulnerability that could be exploited (SQL injection, hardcoded credentials, GDPR/HIPAA violation, no encryption).
+- "high": Security vulnerability that creates significant risk but doesn't immediately expose data (violation of least privilege, no audit trail, zero-trust violation).
+- "medium": Code quality or architectural issues that create risk over time (no error handling, connection not closed, missing documentation, generic SELECT *).
+- "low": Best practice recommendations that improve code hygiene (missing type hints, no return type documentation).
+
+Return findings as objects: { "severity": "critical"|"high"|"medium"|"low", "text": "description" }
+The section-level "badge" should equal the HIGHEST severity found among that section's findings.`;
+
+const GENERIC_SYSTEM = `You are a code review assistant. Review the provided code for quality, potential bugs, and general best practices.
+${SEVERITY_GUIDANCE}
+Return a JSON response with this structure:
 {
-  "quality": { "badge": "pass"|"warning"|"critical", "findings": ["finding 1", "finding 2"] },
-  "security": { "badge": "pass"|"warning"|"critical", "findings": ["finding 1", "finding 2"] },
-  "compliance": { "badge": "pass"|"warning"|"critical", "findings": ["finding 1", "finding 2"] }
+  "quality": { "badge": "critical"|"high"|"medium"|"low", "findings": [{"severity":"medium","text":"finding 1"}] },
+  "security": { "badge": "critical"|"high"|"medium"|"low", "findings": [{"severity":"high","text":"finding 1"}] },
+  "compliance": { "badge": "critical"|"high"|"medium"|"low", "findings": [{"severity":"low","text":"finding 1"}] }
 }
 Keep findings concise — one sentence each, maximum 4 per section. Do not return anything outside this JSON.`;
 
@@ -24,11 +36,12 @@ const SECURITY_SYSTEM = `You are a security-aware code review assistant for Kite
 - GDPR/HIPAA awareness: flag any PII or PHI handling that lacks proper controls
 
 Review the provided code against these standards.
+${SEVERITY_GUIDANCE}
 Return a JSON response with this structure:
 {
-  "quality": { "badge": "pass"|"warning"|"critical", "findings": ["finding 1", "finding 2"] },
-  "security": { "badge": "pass"|"warning"|"critical", "findings": ["finding 1", "finding 2"] },
-  "compliance": { "badge": "pass"|"warning"|"critical", "findings": ["finding 1", "finding 2"] }
+  "quality": { "badge": "critical"|"high"|"medium"|"low", "findings": [{"severity":"medium","text":"finding 1"}] },
+  "security": { "badge": "critical"|"high"|"medium"|"low", "findings": [{"severity":"critical","text":"finding 1"}] },
+  "compliance": { "badge": "critical"|"high"|"medium"|"low", "findings": [{"severity":"high","text":"finding 1"}] }
 }
 In the security and compliance sections, be specific about which Kiteworks standard is violated and what the remediation should be. Maximum 4 findings per section. Do not return anything outside this JSON.`;
 
