@@ -7,22 +7,26 @@ const corsHeaders = {
 };
 
 const SEVERITY_GUIDANCE = `
-Each finding MUST include a severity level. Use this 4-tier system:
+Each finding MUST include a severity level and a context tag. Use this 4-tier system:
 - "critical": Direct data exposure, compliance violation, or active security vulnerability that could be exploited (SQL injection, hardcoded credentials, GDPR/HIPAA violation, no encryption).
 - "high": Security vulnerability that creates significant risk but doesn't immediately expose data (violation of least privilege, no audit trail, zero-trust violation).
 - "medium": Code quality or architectural issues that create risk over time (no error handling, connection not closed, missing documentation, generic SELECT *).
 - "low": Best practice recommendations that improve code hygiene (missing type hints, no return type documentation).
 
-Return findings as objects: { "severity": "critical"|"high"|"medium"|"low", "text": "description" }
+Each finding must also include a "context" field set to either:
+- "kiteworks" — if the finding relates to security-company-specific concerns (SQL injection, hardcoded credentials, least privilege, audit trail, GDPR/HIPAA, encryption, zero-trust, data minimization)
+- "general" — if the finding is a standard code quality or best practice issue (error handling, connection management, SELECT *, type hints, documentation)
+
+Return findings as objects: { "severity": "critical"|"high"|"medium"|"low", "context": "kiteworks"|"general", "text": "description" }
 The section-level "badge" should equal the HIGHEST severity found among that section's findings.`;
 
 const GENERIC_SYSTEM = `You are a code review assistant. Review the provided code for quality, potential bugs, and general best practices.
 ${SEVERITY_GUIDANCE}
 Return a JSON response with this structure:
 {
-  "quality": { "badge": "critical"|"high"|"medium"|"low", "findings": [{"severity":"medium","text":"finding 1"}] },
-  "security": { "badge": "critical"|"high"|"medium"|"low", "findings": [{"severity":"high","text":"finding 1"}] },
-  "compliance": { "badge": "critical"|"high"|"medium"|"low", "findings": [{"severity":"low","text":"finding 1"}] }
+  "quality": { "badge": "critical"|"high"|"medium"|"low", "findings": [{"severity":"medium","context":"general","text":"finding 1"}] },
+  "security": { "badge": "critical"|"high"|"medium"|"low", "findings": [{"severity":"high","context":"kiteworks","text":"finding 1"}] },
+  "compliance": { "badge": "critical"|"high"|"medium"|"low", "findings": [{"severity":"low","context":"general","text":"finding 1"}] }
 }
 Keep findings concise — one sentence each, maximum 4 per section. Do not return anything outside this JSON.`;
 
@@ -39,9 +43,9 @@ Review the provided code against these standards.
 ${SEVERITY_GUIDANCE}
 Return a JSON response with this structure:
 {
-  "quality": { "badge": "critical"|"high"|"medium"|"low", "findings": [{"severity":"medium","text":"finding 1"}] },
-  "security": { "badge": "critical"|"high"|"medium"|"low", "findings": [{"severity":"critical","text":"finding 1"}] },
-  "compliance": { "badge": "critical"|"high"|"medium"|"low", "findings": [{"severity":"high","text":"finding 1"}] }
+  "quality": { "badge": "critical"|"high"|"medium"|"low", "findings": [{"severity":"medium","context":"general","text":"finding 1"}] },
+  "security": { "badge": "critical"|"high"|"medium"|"low", "findings": [{"severity":"critical","context":"kiteworks","text":"finding 1"}] },
+  "compliance": { "badge": "critical"|"high"|"medium"|"low", "findings": [{"severity":"high","context":"kiteworks","text":"finding 1"}] }
 }
 In the security and compliance sections, be specific about which Kiteworks standard is violated and what the remediation should be. Maximum 4 findings per section. Do not return anything outside this JSON.`;
 
@@ -90,15 +94,12 @@ serve(async (req) => {
 
     const aiData = await response.json();
     let content = aiData.choices?.[0]?.message?.content || "";
-
-    // Strip markdown code fences if present
     content = content.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim();
 
     let parsed;
     try {
       parsed = JSON.parse(content);
     } catch {
-      // Retry once
       const retry = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
         headers: {
