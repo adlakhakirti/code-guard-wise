@@ -1,10 +1,15 @@
 import ReviewCard from "./ReviewCard";
 import type { BadgeLevel } from "./ReviewCard";
 
+interface SectionResult {
+  badge: BadgeLevel;
+  findings: { severity: BadgeLevel; text: string }[];
+}
+
 export interface ReviewResult {
-  quality: { badge: BadgeLevel; findings: string[] };
-  security: { badge: BadgeLevel; findings: string[] };
-  compliance: { badge: BadgeLevel; findings: string[] };
+  quality: SectionResult;
+  security: SectionResult;
+  compliance: SectionResult;
 }
 
 interface ResultsPanelProps {
@@ -39,6 +44,32 @@ const EmptyState = () => (
   </div>
 );
 
+const SEVERITY_ORDER: BadgeLevel[] = ["critical", "high", "medium", "low", "pass"];
+const SEVERITY_COLORS: Record<string, string> = {
+  critical: "text-red-600",
+  high: "text-orange-500",
+  medium: "text-yellow-600",
+  low: "text-blue-500",
+  pass: "text-badge-pass",
+};
+
+function highestSeverity(findings: { severity: BadgeLevel }[]): BadgeLevel {
+  for (const level of SEVERITY_ORDER) {
+    if (findings.some((f) => f.severity === level)) return level;
+  }
+  return "pass";
+}
+
+function normalizeSectionResult(section: any): SectionResult {
+  // Handle both old format (string[]) and new format ({severity, text}[])
+  if (!section) return { badge: "pass", findings: [] };
+  const findings = (section.findings || []).map((f: any) =>
+    typeof f === "string" ? { severity: section.badge || "medium", text: f } : f
+  );
+  const badge = section.badge || highestSeverity(findings);
+  return { badge, findings };
+}
+
 const ResultsPanel = ({ result, isLoading, error }: ResultsPanelProps) => {
   if (isLoading) return <LoadingState />;
   if (error)
@@ -49,30 +80,40 @@ const ResultsPanel = ({ result, isLoading, error }: ResultsPanelProps) => {
     );
   if (!result) return <EmptyState />;
 
-  const counts = {
-    critical: [result.quality, result.security, result.compliance].filter((s) => s.badge === "critical").length,
-    warning: [result.quality, result.security, result.compliance].filter((s) => s.badge === "warning").length,
-    pass: [result.quality, result.security, result.compliance].filter((s) => s.badge === "pass").length,
-  };
+  const sections = [
+    normalizeSectionResult(result.quality),
+    normalizeSectionResult(result.security),
+    normalizeSectionResult(result.compliance),
+  ];
+
+  // Recompute badge as highest severity in each section
+  const quality = { ...sections[0], badge: highestSeverity(sections[0].findings) };
+  const security = { ...sections[1], badge: highestSeverity(sections[1].findings) };
+  const compliance = { ...sections[2], badge: highestSeverity(sections[2].findings) };
+
+  const allFindings = [...quality.findings, ...security.findings, ...compliance.findings];
+  const counts: Record<string, number> = {};
+  for (const f of allFindings) {
+    counts[f.severity] = (counts[f.severity] || 0) + 1;
+  }
 
   return (
     <div className="flex flex-col gap-4 h-full">
       <div className="flex-1 flex flex-col gap-3">
-        <ReviewCard title="Code Quality" badge={result.quality.badge} findings={result.quality.findings} delay={0} />
-        <ReviewCard title="Security Analysis" badge={result.security.badge} findings={result.security.findings} delay={80} />
-        <ReviewCard title="Compliance Check" badge={result.compliance.badge} findings={result.compliance.findings} delay={160} />
+        <ReviewCard title="Code Quality" badge={quality.badge} findings={quality.findings} delay={0} />
+        <ReviewCard title="Security Analysis" badge={security.badge} findings={security.findings} delay={80} />
+        <ReviewCard title="Compliance Check" badge={compliance.badge} findings={compliance.findings} delay={160} />
       </div>
 
       <div className="border-t border-border pt-4 space-y-1.5">
-        <p className="text-sm font-semibold text-foreground flex items-center gap-3">
-          {counts.critical > 0 && (
-            <span className="text-badge-critical">{counts.critical} Critical</span>
-          )}
-          {counts.warning > 0 && (
-            <span className="text-badge-warning">{counts.warning} Warning{counts.warning > 1 ? "s" : ""}</span>
-          )}
-          {counts.pass > 0 && (
-            <span className="text-badge-pass">{counts.pass} Passed</span>
+        <p className="text-sm font-semibold text-foreground flex items-center gap-3 flex-wrap">
+          {SEVERITY_ORDER.filter((l) => l !== "pass" && counts[l]).map((level) => (
+            <span key={level} className={SEVERITY_COLORS[level]}>
+              {counts[level]} {level.charAt(0).toUpperCase() + level.slice(1)}
+            </span>
+          ))}
+          {counts["pass"] && (
+            <span className={SEVERITY_COLORS["pass"]}>{counts["pass"]} Passed</span>
           )}
         </p>
         <p className="text-xs text-muted-foreground">
