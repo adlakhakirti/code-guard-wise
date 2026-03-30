@@ -1,9 +1,9 @@
 import ReviewCard from "./ReviewCard";
-import type { BadgeLevel } from "./ReviewCard";
+import type { BadgeLevel, Finding } from "./ReviewCard";
 
 interface SectionResult {
   badge: BadgeLevel;
-  findings: { severity: BadgeLevel; text: string }[];
+  findings: Finding[];
 }
 
 export interface ReviewResult {
@@ -53,7 +53,7 @@ const SEVERITY_COLORS: Record<string, string> = {
   pass: "text-badge-pass",
 };
 
-function highestSeverity(findings: { severity: BadgeLevel }[]): BadgeLevel {
+function highestSeverity(findings: Finding[]): BadgeLevel {
   for (const level of SEVERITY_ORDER) {
     if (findings.some((f) => f.severity === level)) return level;
   }
@@ -61,12 +61,13 @@ function highestSeverity(findings: { severity: BadgeLevel }[]): BadgeLevel {
 }
 
 function normalizeSectionResult(section: any): SectionResult {
-  // Handle both old format (string[]) and new format ({severity, text}[])
   if (!section) return { badge: "pass", findings: [] };
-  const findings = (section.findings || []).map((f: any) =>
-    typeof f === "string" ? { severity: section.badge || "medium", text: f } : f
+  const findings: Finding[] = (section.findings || []).map((f: any) =>
+    typeof f === "string"
+      ? { severity: section.badge || "medium", context: undefined, text: f }
+      : { severity: f.severity || "medium", context: f.context || undefined, text: f.text || "" }
   );
-  const badge = section.badge || highestSeverity(findings);
+  const badge = highestSeverity(findings);
   return { badge, findings };
 }
 
@@ -80,16 +81,9 @@ const ResultsPanel = ({ result, isLoading, error }: ResultsPanelProps) => {
     );
   if (!result) return <EmptyState />;
 
-  const sections = [
-    normalizeSectionResult(result.quality),
-    normalizeSectionResult(result.security),
-    normalizeSectionResult(result.compliance),
-  ];
-
-  // Recompute badge as highest severity in each section
-  const quality = { ...sections[0], badge: highestSeverity(sections[0].findings) };
-  const security = { ...sections[1], badge: highestSeverity(sections[1].findings) };
-  const compliance = { ...sections[2], badge: highestSeverity(sections[2].findings) };
+  const quality = normalizeSectionResult(result.quality);
+  const security = normalizeSectionResult(result.security);
+  const compliance = normalizeSectionResult(result.compliance);
 
   const allFindings = [...quality.findings, ...security.findings, ...compliance.findings];
   const counts: Record<string, number> = {};
@@ -99,6 +93,10 @@ const ResultsPanel = ({ result, isLoading, error }: ResultsPanelProps) => {
 
   return (
     <div className="flex flex-col gap-4 h-full">
+      <p className="text-[11px] text-muted-foreground">
+        🛡 <span className="font-medium">Kiteworks</span> = Security-company specific · <span className="font-medium">General</span> = Standard best practice
+      </p>
+
       <div className="flex-1 flex flex-col gap-3">
         <ReviewCard title="Code Quality" badge={quality.badge} findings={quality.findings} delay={0} />
         <ReviewCard title="Security Analysis" badge={security.badge} findings={security.findings} delay={80} />

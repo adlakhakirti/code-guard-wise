@@ -1,11 +1,18 @@
-import { CheckCircle, AlertTriangle, XCircle, AlertOctagon, Info } from "lucide-react";
+import { CheckCircle, AlertTriangle, XCircle, AlertOctagon, Info, Shield } from "lucide-react";
 
 export type BadgeLevel = "critical" | "high" | "medium" | "low" | "pass";
+export type FindingContext = "kiteworks" | "general";
+
+export interface Finding {
+  severity: BadgeLevel;
+  context?: FindingContext;
+  text: string;
+}
 
 interface ReviewCardProps {
   title: string;
   badge: BadgeLevel;
-  findings: { severity: BadgeLevel; text: string }[];
+  findings: Finding[];
   delay?: number;
 }
 
@@ -23,6 +30,22 @@ const SEVERITY_DOT: Record<BadgeLevel, string> = {
   medium: "bg-yellow-500",
   low: "bg-blue-500",
   pass: "bg-badge-pass",
+};
+
+const ContextPill = ({ context }: { context?: FindingContext }) => {
+  if (context === "kiteworks") {
+    return (
+      <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-slate-800 text-white text-[11px] font-medium leading-none whitespace-nowrap shrink-0">
+        <Shield className="w-2.5 h-2.5" />
+        Kiteworks
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center px-1.5 py-0.5 rounded-full bg-gray-200 text-gray-600 text-[11px] font-medium leading-none whitespace-nowrap shrink-0">
+      General
+    </span>
+  );
 };
 
 const ReviewCard = ({ title, badge, findings, delay = 0 }: ReviewCardProps) => {
@@ -45,7 +68,8 @@ const ReviewCard = ({ title, badge, findings, delay = 0 }: ReviewCardProps) => {
         {findings.map((f, i) => (
           <li key={i} className="flex items-start gap-2 text-sm text-foreground/85 leading-snug">
             <span className={`mt-1.5 w-1.5 h-1.5 rounded-full ${SEVERITY_DOT[f.severity] || "bg-muted-foreground/40"} shrink-0`} />
-            {f.text}
+            <span className="flex-1">{f.text}</span>
+            <ContextPill context={f.context} />
           </li>
         ))}
       </ul>
