@@ -1,7 +1,6 @@
 # CodeGuard AI
 
-An LLM-powered code review prototype built as an interview artifact for 
-Kiteworks (Senior PM, AI Platforms). The goal: demonstrate how I'd approach 
+An LLM-powered code review prototype built to demonstrate how I'd approach 
 the product surface for an enterprise-grade AI code reviewer in a regulated, 
 security-first environment.
 
@@ -13,8 +12,8 @@ Paste code → get a structured review across three dimensions:
 - **Security** — injection risks, hardcoded credentials, encryption gaps
 - **Compliance** — audit trail, least privilege, GDPR/HIPAA awareness
 
-A toggle switches between a generic system prompt and a Kiteworks-aware 
-system prompt that grades code against Kiteworks' specific standards 
+A toggle switches between a generic system prompt and a 
+system prompt that grades code against specific standards 
 (zero-trust, AES-256 at rest and in transit, immutable audit logs, 
 parameterized queries, no hardcoded credentials, PII/PHI flagging).
 
@@ -54,3 +53,40 @@ confidence-thresholded human-in-the-loop escalation.
 - **Built with:** Lovable, Cursor
 
 ## Architecture
+User pastes code
+↓
+React UI (security-aware toggle)
+↓
+Lovable AI Gateway → Gemini
+↓ JSON response with severity, context, confidence per finding
+↓ retry with stricter prompt on parse failure
+React Results Panel
+
+## Limitations (honest version)
+
+- **Not production-grade security.** The "demo" caveat: code is sent to a 
+  third-party LLM gateway. A real enterprise deployment would route to 
+  customer-controlled model hosting (on-prem or VPC).
+- **Prompt-only.** No fine-tuning, no RAG,  no eval set. A real version would need a benchmark of labeled 
+  code samples and an LLM-as-judge eval pipeline — the same evaluation 
+  lifecycle work I owned at RBC.
+- **No persistence.** Every review is one-shot. A real version would log 
+  reviews, capture human feedback (false positives, missed findings), and 
+  feed that back into prompt iteration and eval set growth.
+- **JSON parsing fragility.** The current retry-once-on-parse-failure 
+  pattern is a band-aid. Production would use structured output / 
+  function calling instead.
+
+## Running locally
+
+```bash
+cp .env.example .env
+# Fill in your own Supabase project values
+npm install
+npm run dev
+```
+
+You'll need a Supabase project with the `review-code` edge function deployed 
+and a `LOVABLE_API_KEY` configured as a function secret.
+
+
