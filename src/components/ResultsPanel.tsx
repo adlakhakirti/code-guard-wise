@@ -122,7 +122,7 @@ const ResultsPanel = ({ result, isLoading, error }: ResultsPanelProps) => {
           )}
         </p>
         <p className="text-xs text-muted-foreground">
-          CodeGuard AI runs entirely within your secure perimeter. No code leaves your infrastructure.
+          Demo prototype. Runs an LLM-powered code review against quality, security, and compliance rubrics.
         </p>
         {hasNeedsReview && (
           <p className="text-[11px] text-muted-foreground italic">
