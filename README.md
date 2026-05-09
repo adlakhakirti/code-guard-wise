@@ -29,8 +29,7 @@ prioritize, and it gives engineers a defensible signal for what to fix
 now vs later.
 
 **2. Context tags on every finding.**  
-Each finding is tagged `kiteworks` (security-company-specific concern) or 
-`general` (standard best practice). This separates "this violates *our* 
+Each finding is tagged as (security-company-specific concern) or (standard best practice). This separates "this violates *our* 
 standards" from "this is a code smell" — a distinction that matters when 
 the same finding might be acceptable at one customer and a blocker at 
 another.
