@@ -59,11 +59,28 @@ serve(async (req) => {
   }
 
   try {
-    const { code, securityAware } = await req.json();
+    const body = await req.json();
+    const { code, securityAware } = body ?? {};
+    if (!code || typeof code !== "string" || code.trim().length === 0) {
+      return new Response(JSON.stringify({ error: "Code is required." }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    if (code.length > 20_000) {
+      return new Response(JSON.stringify({ error: "Code exceeds maximum length of 20,000 characters." }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    if (securityAware !== undefined && typeof securityAware !== "boolean") {
+      return new Response(JSON.stringify({ error: "Invalid securityAware flag." }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
     const systemPrompt = securityAware ? SECURITY_SYSTEM : GENERIC_SYSTEM;
+
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -124,12 +141,14 @@ serve(async (req) => {
 
     return new Response(JSON.stringify(parsed), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
   } catch (e) {
     console.error("review-code error:", e);
     return new Response(
-      JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }),
+      JSON.stringify({ error: "An internal error occurred. Please try again." }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
+  }
+});
+
   }
 });
