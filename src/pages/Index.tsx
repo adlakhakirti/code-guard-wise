@@ -37,16 +37,10 @@ const Index = () => {
     }
   };
 
-  const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    navigate("/auth", { replace: true });
-  };
-
-  if (checkingAuth) return null;
-
   return (
     <div className="flex flex-col min-h-screen">
-      <TopBar securityAware={securityAware} onToggle={setSecurityAware} onSignOut={handleSignOut} />
+      <TopBar securityAware={securityAware} onToggle={setSecurityAware} />
+
 
 
       <main className="flex-1 flex flex-col md:flex-row">
