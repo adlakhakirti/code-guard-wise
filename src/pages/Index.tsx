@@ -1,5 +1,4 @@
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import TopBar from "@/components/TopBar";
 import CodeInputPanel from "@/components/CodeInputPanel";
@@ -7,24 +6,12 @@ import ResultsPanel from "@/components/ResultsPanel";
 import type { ReviewResult } from "@/components/ResultsPanel";
 
 const Index = () => {
-  const navigate = useNavigate();
-  const [checkingAuth, setCheckingAuth] = useState(true);
   const [securityAware, setSecurityAware] = useState(true);
   const [code, setCode] = useState("");
   const [result, setResult] = useState<ReviewResult | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
-      if (!session) navigate("/auth", { replace: true });
-    });
-    supabase.auth.getSession().then(({ data }) => {
-      if (!data.session) navigate("/auth", { replace: true });
-      else setCheckingAuth(false);
-    });
-    return () => sub.subscription.unsubscribe();
-  }, [navigate]);
 
 
   const handleSubmit = async () => {
@@ -50,16 +37,10 @@ const Index = () => {
     }
   };
 
-  const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    navigate("/auth", { replace: true });
-  };
-
-  if (checkingAuth) return null;
-
   return (
     <div className="flex flex-col min-h-screen">
-      <TopBar securityAware={securityAware} onToggle={setSecurityAware} onSignOut={handleSignOut} />
+      <TopBar securityAware={securityAware} onToggle={setSecurityAware} />
+
 
 
       <main className="flex-1 flex flex-col md:flex-row">
