@@ -35,8 +35,20 @@ const TopBar = ({ securityAware, onToggle, onSignOut }: TopBarProps) => {
           />
         </button>
         <span className={`text-xs font-semibold transition-opacity ${securityAware ? "opacity-100" : "opacity-50"}`}>
-          Security-Aware
         </span>
+        {onSignOut && (
+          <button
+            onClick={onSignOut}
+            className="ml-3 p-1.5 rounded hover:bg-navy-foreground/10 transition-colors"
+            aria-label="Sign out"
+            title="Sign out"
+          >
+            <LogOut className="w-4 h-4" />
+          </button>
+        )}
+      </div>
+    </header>
+
       </div>
     </header>
   );
