@@ -35,6 +35,7 @@ const TopBar = ({ securityAware, onToggle, onSignOut }: TopBarProps) => {
           />
         </button>
         <span className={`text-xs font-semibold transition-opacity ${securityAware ? "opacity-100" : "opacity-50"}`}>
+          Security-Aware
         </span>
         {onSignOut && (
           <button
@@ -49,8 +50,6 @@ const TopBar = ({ securityAware, onToggle, onSignOut }: TopBarProps) => {
       </div>
     </header>
 
-      </div>
-    </header>
   );
 };
 
