@@ -1,11 +1,13 @@
-import { Shield } from "lucide-react";
+import { Shield, LogOut } from "lucide-react";
 
 interface TopBarProps {
   securityAware: boolean;
   onToggle: (value: boolean) => void;
+  onSignOut?: () => void;
 }
 
-const TopBar = ({ securityAware, onToggle }: TopBarProps) => {
+const TopBar = ({ securityAware, onToggle, onSignOut }: TopBarProps) => {
+
   return (
     <header className="bg-navy text-navy-foreground px-6 py-3.5 flex items-center justify-between gap-4">
       <div className="flex items-center gap-2.5 shrink-0">
