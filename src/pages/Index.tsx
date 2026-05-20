@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import TopBar from "@/components/TopBar";
 import CodeInputPanel from "@/components/CodeInputPanel";
 import ResultsPanel from "@/components/ResultsPanel";
@@ -21,6 +20,7 @@ const Index = () => {
     setResult(null);
 
     try {
+      const { supabase } = await import("@/integrations/supabase/client");
       const { data, error: fnError } = await supabase.functions.invoke("review-code", {
         body: { code, securityAware },
       });
