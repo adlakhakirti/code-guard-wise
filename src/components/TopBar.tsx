@@ -1,11 +1,13 @@
-import { Shield } from "lucide-react";
+import { Shield, LogOut } from "lucide-react";
 
 interface TopBarProps {
   securityAware: boolean;
   onToggle: (value: boolean) => void;
+  onSignOut?: () => void;
 }
 
-const TopBar = ({ securityAware, onToggle }: TopBarProps) => {
+const TopBar = ({ securityAware, onToggle, onSignOut }: TopBarProps) => {
+
   return (
     <header className="bg-navy text-navy-foreground px-6 py-3.5 flex items-center justify-between gap-4">
       <div className="flex items-center gap-2.5 shrink-0">
@@ -35,8 +37,19 @@ const TopBar = ({ securityAware, onToggle }: TopBarProps) => {
         <span className={`text-xs font-semibold transition-opacity ${securityAware ? "opacity-100" : "opacity-50"}`}>
           Security-Aware
         </span>
+        {onSignOut && (
+          <button
+            onClick={onSignOut}
+            className="ml-3 p-1.5 rounded hover:bg-navy-foreground/10 transition-colors"
+            aria-label="Sign out"
+            title="Sign out"
+          >
+            <LogOut className="w-4 h-4" />
+          </button>
+        )}
       </div>
     </header>
+
   );
 };
 
